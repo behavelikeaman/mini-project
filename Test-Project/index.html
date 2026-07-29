@@ -253,7 +253,12 @@ function load(key, fallback) {
   const raw = localStorage.getItem(key);
   if (raw === null) return fallback;          // 저장된 적 없으면 기본값
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    // JSON 문법이 멀쩡해도 배열이 아닐 수 있다 ('{}' 나 '5' 는 파싱에 성공한다).
+    // 배열이 아닌 값이 들어오면 뒤에서 .map() / .length 가 깨지므로 여기서 걸러낸다.
+    // (배열 판별은 typeof 로 안 된다 — typeof [] 와 typeof {} 가 둘 다 "object")
+    if (!Array.isArray(parsed)) return fallback;
+    return parsed;
   } catch (e) {
     return fallback;                          // 값이 깨졌으면 기본값으로 복구
   }
@@ -337,11 +342,14 @@ function renderHistory() {
   }).join("");
 }
 
-// 사용자가 입력한 글자에 <, > 같은 기호가 있어도 HTML로 해석되지 않도록 변환
+// 사용자가 입력한 글자에 <, > 같은 기호가 있어도 HTML로 해석되지 않도록 변환.
+// 따옴표(" 와 ')까지 바꾸는 이유: 나중에 이 결과를 속성값(title='...')에 넣더라도
+// 따옴표로 속성을 탈출하지 못하게 막기 위함이다.
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 
