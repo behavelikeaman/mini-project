@@ -1,0 +1,14 @@
+# ============================================
+# .gitattributes — 파일별로 git 이 어떻게 다룰지 지정
+# ============================================
+
+# 줄바꿈(개행) 문자는 OS마다 다르다.
+#   Windows = CRLF (\r\n)   /   Mac·Linux = LF (\n)
+# text=auto : 저장소 안에는 항상 LF 로 저장하고,
+#             내 PC 로 꺼낼 때만 OS 에 맞게 바꿔준다.
+* text=auto
+
+# 단, 셸 스크립트는 예외로 항상 LF 를 유지한다.
+# CRLF 가 섞이면 bash 가 줄 끝의 \r 까지 명령어로 읽어서
+# ".claude/hooks/pre-commit-check.sh: bad interpreter" 같은 에러가 난다.
+*.sh text eol=lf

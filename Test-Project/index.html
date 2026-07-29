@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오늘 뭐 먹지? — 랜덤 식단 룰렛</title>
+<style>
+  /* ===== 기본 설정 ===== */
+  :root {
+    --wheel-size: min(340px, 82vw);   /* 원판 지름. 화면이 좁으면 자동으로 작아짐 */
+    --bg: #fdf8f3;
+    --card: #ffffff;
+    --text: #2d2a26;
+    --muted: #8a8178;
+    --accent: #e8590c;
+    --border: #ece4db;
+  }
+
+  /* 사용자가 다크 모드를 쓰면 색만 바꿔치기 */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a18;
+      --card: #262320;
+      --text: #f0ebe5;
+      --muted: #9b938a;
+      --border: #3a3530;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard", "Malgun Gothic", -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.5px; }
+  .sub { color: var(--muted); font-size: 13px; margin: -18px 0 0; }
+
+  /* ===== 룰렛 영역 ===== */
+  /* position:relative → 안쪽 요소를 absolute로 겹쳐 올리기 위한 기준점 */
+  .wheel-wrap {
+    position: relative;
+    width: var(--wheel-size);
+    height: var(--wheel-size);
+  }
+
+  /* 원판 본체. background(색 조각)와 transform(회전)은 JS가 채워 넣는다 */
+  .wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;              /* 정사각형을 원으로 */
+    border: 6px solid var(--card);
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    overflow: hidden;
+    /* 회전 애니메이션은 CSS가 알아서 해준다. JS는 목표 각도만 지정 */
+    transition: transform 4s cubic-bezier(0.17, 0.67, 0.2, 1);
+  }
+
+  /* 조각 위에 얹는 메뉴 이름.
+     원판과 같은 크기로 깔고 통째로 회전시키면, 글자가 조각 중앙으로 간다 */
+  .label {
+    position: absolute;
+    inset: 0;                         /* top/right/bottom/left: 0 과 같은 뜻 */
+    display: flex;
+    justify-content: center;          /* 가로 중앙 */
+    padding-top: 16px;                /* 위쪽(12시 방향)에 배치 */
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,.35);
+    pointer-events: none;             /* 글자가 클릭을 가로채지 않도록 */
+    white-space: nowrap;
+  }
+
+  /* 12시 방향에 고정된 삼각형 바늘. 원판이 돌고 바늘은 가만히 있는다 */
+  .pointer {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;              /* 크기 0 + border 트릭 = 삼각형 */
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 26px solid var(--accent);
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.3));
+    z-index: 3;
+  }
+
+  /* 원판 한가운데의 START 버튼. 원판 바깥 요소라서 같이 돌지 않는다 */
+  .hub {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    border: 5px solid var(--card);
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px; font-weight: 800; letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    transition: transform .15s ease, opacity .2s ease;
+    z-index: 2;
+  }
+  .hub:hover:not(:disabled) { transform: translate(-50%, -50%) scale(1.06); }
+  .hub:active:not(:disabled) { transform: translate(-50%, -50%) scale(0.96); }
+  .hub:disabled { opacity: .55; cursor: not-allowed; }
+
+  /* ===== 결과 ===== */
+  .result {
+    min-height: 44px;
+    font-size: 26px;
+    font-weight: 800;
+    text-align: center;
+  }
+  .result.pop { animation: pop .45s ease; }
+  @keyframes pop {
+    0%   { transform: scale(.6); opacity: 0; }
+    60%  { transform: scale(1.12); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== 카드(메뉴 관리 / 기록) ===== */
+  .card {
+    width: min(420px, 100%);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .card h2 {
+    font-size: 13px; font-weight: 700; color: var(--muted);
+    margin: 0 0 12px; letter-spacing: .3px;
+  }
+
+  .row { display: flex; gap: 8px; margin-bottom: 12px; }
+  input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .add-btn {
+    padding: 0 16px;
+    border: none; border-radius: 9px;
+    background: var(--accent); color: #fff;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .add-btn:hover { filter: brightness(1.08); }
+
+  /* 메뉴 목록: 알약 모양 칩들이 줄바꿈되며 나열됨 */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 8px 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+  }
+  .chip button {
+    border: none; background: none; cursor: pointer;
+    color: var(--muted); font-size: 15px; line-height: 1;
+    padding: 0 2px;
+  }
+  .chip button:hover { color: #e03131; }
+
+  .hist { list-style: none; margin: 0; padding: 0; }
+  .hist li {
+    display: flex; justify-content: space-between;
+    padding: 8px 2px; font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hist li:last-child { border-bottom: none; }
+  .hist .when { color: var(--muted); font-size: 12px; }
+  .empty { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+  <h1>🍽️ 오늘 뭐 먹지?</h1>
+  <p class="sub">고민하지 말고 룰렛에 맡기세요</p>
+
+  <div class="wheel-wrap">
+    <div class="pointer"></div>
+    <div class="wheel" id="wheel"></div>
+    <button class="hub" id="spinBtn">START</button>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <div class="card">
+    <h2>메뉴 관리</h2>
+    <div class="row">
+      <input type="text" id="menuInput" placeholder="메뉴 이름 입력" maxlength="10">
+      <button class="add-btn" id="addBtn">추가</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="card">
+    <h2>최근 결과</h2>
+    <ul class="hist" id="history"></ul>
+  </div>
+
+<script>
+// =====================================================================
+// 1. 상태(state) — 화면에 보이는 모든 것의 원본 데이터
+//    규칙: 이 값들을 바꾼 뒤에는 반드시 render() 를 다시 호출한다.
+// =====================================================================
+
+const DEFAULT_MENUS = [
+  "김치찌개", "제육볶음", "비빔밥", "돈까스",
+  "초밥", "라멘", "짜장면", "마라탕",
+  "파스타", "피자", "햄버거", "샐러드"
+];
+
+// localStorage에 저장된 값이 있으면 그것을, 없으면 기본값을 사용
+let menus   = load("roulette.menus", DEFAULT_MENUS);
+let history = load("roulette.history", []);
+
+let currentRotation = 0;      // 원판이 지금까지 돈 누적 각도 (계속 커진다)
+let isSpinning = false;       // 도는 중인지. 연타·중복 실행을 막는 잠금장치
+
+// 화면 요소들을 미리 찾아둔다
+const wheelEl  = document.getElementById("wheel");
+const spinBtn  = document.getElementById("spinBtn");
+const resultEl = document.getElementById("result");
+const chipsEl  = document.getElementById("chips");
+const histEl   = document.getElementById("history");
+const inputEl  = document.getElementById("menuInput");
+const addBtn   = document.getElementById("addBtn");
+
+
+// =====================================================================
+// 2. 저장 / 불러오기 (localStorage)
+//    localStorage는 문자열만 담을 수 있어서 JSON으로 변환해서 넣고 뺀다.
+// =====================================================================
+
+function load(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return fallback;          // 저장된 적 없으면 기본값
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return fallback;                          // 값이 깨졌으면 기본값으로 복구
+  }
+}
+
+function save() {
+  localStorage.setItem("roulette.menus", JSON.stringify(menus));
+  localStorage.setItem("roulette.history", JSON.stringify(history));
+}
+
+
+// =====================================================================
+// 3. 화면 그리기 (render)
+//    데이터를 읽어서 HTML을 만든다. 데이터가 바뀔 때마다 통째로 다시 그린다.
+// =====================================================================
+
+function render() {
+  renderWheel();
+  renderChips();
+  renderHistory();
+  // 메뉴가 2개 미만이면 룰렛을 돌릴 수 없다
+  spinBtn.disabled = menus.length < 2;
+}
+
+function renderWheel() {
+  const n = menus.length;
+
+  if (n === 0) {
+    wheelEl.style.background = "#d9d2ca";
+    wheelEl.innerHTML = "";
+    return;
+  }
+
+  const seg = 360 / n;               // 조각 하나가 차지하는 각도
+
+  // (1) conic-gradient 문자열을 조립한다.
+  //     결과 예시: "conic-gradient(hsl(0,70%,55%) 0deg 30deg, hsl(30,...) 30deg 60deg, ...)"
+  const stops = menus.map(function (name, i) {
+    const color = sliceColor(i, n);
+    return color + " " + (i * seg) + "deg " + ((i + 1) * seg) + "deg";
+  });
+  wheelEl.style.background = "conic-gradient(" + stops.join(", ") + ")";
+
+  // (2) 조각마다 메뉴 이름 얹기.
+  //     각 라벨을 조각의 '중앙 각도'만큼 회전시킨다 → (i + 0.5) * seg
+  const fontSize = n > 12 ? 11 : (n > 8 ? 12 : 14);
+  wheelEl.innerHTML = menus.map(function (name, i) {
+    const angle = (i + 0.5) * seg;
+    return '<div class="label" style="transform: rotate(' + angle + 'deg); font-size:' + fontSize + 'px">'
+         + escapeHtml(name)
+         + '</div>';
+  }).join("");
+}
+
+// 조각 색: 색상환(hue)을 메뉴 개수로 균등하게 나눠 항상 서로 다른 색이 나오게 한다
+function sliceColor(i, n) {
+  const hue = Math.round((360 / n) * i);
+  const light = i % 2 === 0 ? 56 : 48;   // 한 칸씩 명도를 달리해 경계를 뚜렷하게
+  return "hsl(" + hue + ", 68%, " + light + "%)";
+}
+
+function renderChips() {
+  if (menus.length === 0) {
+    chipsEl.innerHTML = '<span class="empty">메뉴를 추가해 주세요</span>';
+    return;
+  }
+  chipsEl.innerHTML = menus.map(function (name, i) {
+    return '<span class="chip">' + escapeHtml(name)
+         + '<button data-index="' + i + '" title="삭제">&times;</button></span>';
+  }).join("");
+}
+
+function renderHistory() {
+  if (history.length === 0) {
+    histEl.innerHTML = '<li class="empty">아직 기록이 없어요</li>';
+    return;
+  }
+  histEl.innerHTML = history.map(function (item) {
+    return '<li><span>' + escapeHtml(item.name) + '</span>'
+         + '<span class="when">' + item.time + '</span></li>';
+  }).join("");
+}
+
+// 사용자가 입력한 글자에 <, > 같은 기호가 있어도 HTML로 해석되지 않도록 변환
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+
+// =====================================================================
+// 4. 룰렛 돌리기 — 이 프로그램의 핵심
+//
+//    순서가 직관과 반대다.
+//    돌린 뒤 결과를 읽는 게 아니라,
+//    ① 당첨자를 먼저 뽑고 → ② 그 조각이 12시(바늘)에 오도록 각도를 계산해 → ③ 돌린다.
+// =====================================================================
+
+function spin() {
+  if (isSpinning || menus.length < 2) return;   // 도는 중이거나 메뉴가 부족하면 무시
+
+  isSpinning = true;
+  spinBtn.disabled = true;
+  resultEl.textContent = "";
+  resultEl.classList.remove("pop");
+
+  // ① 당첨자를 먼저 뽑는다
+  const i = Math.floor(Math.random() * menus.length);
+  const seg = 360 / menus.length;
+
+  // ② 그 조각을 12시로 끌어올 각도를 계산한다
+  //    - base: 지금까지 돈 바퀴 수를 360의 배수로 잘라낸 값 (누적분 유지)
+  //    - 360 * 5: 그럴듯해 보이게 최소 5바퀴 더 돌린다
+  //    - 360 - (i + 0.5) * seg: 조각의 중앙이 12시에 오도록 되돌리는 양
+  const base = Math.floor(currentRotation / 360) * 360;
+  currentRotation = base + 360 * 5 + (360 - (i + 0.5) * seg);
+
+  // ③ 각도만 바꿔주면 회전 애니메이션은 CSS의 transition이 알아서 처리한다
+  wheelEl.style.transform = "rotate(" + currentRotation + "deg)";
+
+  // 애니메이션이 끝나는 순간을 잡아 결과를 표시한다. once:true → 한 번만 듣고 자동 해제
+  wheelEl.addEventListener("transitionend", function () {
+    finishSpin(menus[i]);
+  }, { once: true });
+}
+
+function finishSpin(name) {
+  isSpinning = false;
+  spinBtn.disabled = menus.length < 2;
+
+  resultEl.textContent = "🎉 " + name;
+  resultEl.classList.add("pop");
+
+  // 기록에 추가: 맨 앞에 넣고(unshift) 5개까지만 남긴다(slice)
+  const now = new Date();
+  const time = now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0");
+  history.unshift({ name: name, time: time });
+  history = history.slice(0, 5);
+
+  save();
+  renderHistory();
+}
+
+
+// =====================================================================
+// 5. 메뉴 추가 / 삭제
+// =====================================================================
+
+function addMenu() {
+  if (isSpinning) return;              // 도는 도중에 조각 수가 바뀌면 결과가 어긋난다
+
+  const name = inputEl.value.trim();   // 앞뒤 공백 제거
+  if (name === "") return;
+
+  if (menus.includes(name)) {          // 중복 방지
+    inputEl.select();
+    return;
+  }
+
+  menus.push(name);
+  inputEl.value = "";
+  resultEl.textContent = "";           // 조각 배치가 달라졌으므로 이전 결과는 지운다
+  save();
+  render();
+}
+
+function removeMenu(index) {
+  if (isSpinning) return;
+
+  menus.splice(index, 1);              // index 위치에서 1개 삭제
+  resultEl.textContent = "";
+  save();
+  render();
+}
+
+
+// =====================================================================
+// 6. 이벤트 연결 — 사용자의 동작과 함수를 이어준다
+// =====================================================================
+
+spinBtn.addEventListener("click", spin);
+addBtn.addEventListener("click", addMenu);
+
+// 입력창에서 Enter를 눌러도 추가되도록
+inputEl.addEventListener("keydown", function (e) {
+  if (e.key === "Enter") addMenu();
+});
+
+// 칩의 × 버튼은 render()가 새로 만들 때마다 사라진다.
+// 그래서 버튼 하나하나가 아니라 '부모'가 클릭을 대신 받는다 (이벤트 위임)
+chipsEl.addEventListener("click", function (e) {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  removeMenu(Number(btn.dataset.index));
+});
+
+// 첫 화면 그리기
+render();
+</script>
+</body>
+</html>
