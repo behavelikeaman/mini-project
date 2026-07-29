@@ -19,7 +19,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 실행:  index.html 을 브라우저에서 연다 (더블클릭). 저장 후 F5 로 반영.
 ```
 
-이 프로젝트는 아직 git 저장소가 아니다.
+## git
+
+**저장소 루트는 이 폴더가 아니라 상위 폴더 `C:\Claude\Projects` 다.** 원격 저장소 이름이 복수형
+`projects`(여러 프로젝트를 담는 용도)라 `Test-Project/`가 그 하위 폴더로 올라가기 때문이다.
+git은 "로컬 루트 → 원격 하위 폴더" 매핑을 지원하지 않아 상위 폴더를 저장소로 만들었다.
+
+| 항목 | 값 |
+|---|---|
+| 원격 | https://github.com/behavelikeaman/projects (public) |
+| 브랜치 | `main` |
+| 명령 | `git -C C:\Claude\Projects ...` (하위 폴더에서 그냥 쳐도 상위 `.git`을 찾는다) |
+| 제외 | 옆의 `harness-project/`, `stock/`은 `.gitignore`로 빠져 있다 |
+
+`.gitattributes`가 `*.sh`를 LF로 고정한다. CRLF가 되면 아래 프리커밋 훅을 bash가 실행하지 못하므로
+이 설정을 지우지 말 것.
+
+`push`는 인증 때문에 **백그라운드로 실행해야 한다**(포그라운드는 `Cannot prompt because user
+interactivity has been disabled`로 실패). 백그라운드에서는 자격증명 관리자가 예외 메시지를 뱉고도
+결국 성공하므로, 중간 출력의 에러만 보고 실패로 판단하지 말고 exit code와 `git ls-remote`로 확인할 것.
 
 린트/빌드/테스트 명령을 만들어내지 말 것. 필요해지면 `package.json`을 먼저 추가해야 하고,
 그러면 아래 프리커밋 훅이 자동으로 그 스크립트들을 잡아 실행한다.
