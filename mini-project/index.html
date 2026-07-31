@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>채팅방 요약 도우미</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>채팅방 요약 도우미</h1>
+    <p class="sub">카카오톡 대화 내보내기(.txt)를 올리면 요약과 액션 아이템을 뽑아드려요</p>
+  </header>
+
+  <section class="card">
+    <h2>1. Claude API 키</h2>
+    <div class="row">
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+      <button id="saveKeyBtn">저장</button>
+    </div>
+    <p class="status-line" id="keyStatus">이 브라우저의 localStorage에만 저장되며, Claude API 요청 시 그대로 사용됩니다. 개발자도구 네트워크 탭에 노출될 수 있으니 본인만 쓰는 환경에서 사용하세요.</p>
+  </section>
+
+  <section class="card">
+    <h2>2. 대화 파일 업로드</h2>
+    <div class="row">
+      <input type="file" id="fileInput" accept=".txt">
+    </div>
+    <p class="file-summary" id="fileSummary"></p>
+    <p class="notice" id="truncateNotice"></p>
+    <p class="error" id="parseError"></p>
+    <div class="analyze-row">
+      <button id="analyzeBtn" disabled>분석하기</button>
+    </div>
+    <div class="loading" id="loading"><span class="spinner"></span><span>Claude가 대화를 분석하는 중...</span></div>
+    <p class="error" id="apiError"></p>
+  </section>
+
+  <section class="card result-wrap" id="resultWrap">
+    <div>
+      <h2>요약</h2>
+      <p class="summary-text" id="summaryText"></p>
+    </div>
+    <div>
+      <h2>액션 아이템</h2>
+      <div id="actionItems"></div>
+      <p class="empty-note" id="noActionNote" style="display:none;">뽑아낼 액션 아이템이 없습니다.</p>
+    </div>
+  </section>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
