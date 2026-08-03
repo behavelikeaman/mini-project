@@ -29,6 +29,8 @@
 | `js/ui.js`, `js/main.js`, `js/storage.js`, `api/client.js` | **차단** | 테스트 파일 없음 |
 | `index.html`, `css/style.css`, `*.md`, `*.json` | 허용 | 훅이 검사하지 않는 확장자 |
 
+표를 갱신할 때는 실제로 편집해 보지 말고 훅에 직접 물어보세요 — 빈 출력이면 허용, `deny` JSON이 나오면 차단입니다: `echo '{"tool_input":{"file_path":"js/ui.js"}}' | bash .claude/hooks/tdd-guard.sh`
+
 차단된 파일을 고쳐야 한다면 **테스트를 먼저 작성하세요.** 참고 패턴은 `js/parser.test.js`입니다(외부 의존성 없이 Node 내장 `assert/strict` + `new Function`으로 IIFE 로드). 훅을 우회하거나 비활성화하지 마세요 — 이 프로젝트가 TDD를 강제하려고 의도적으로 켜 둔 장치입니다.
 
 훅 스크립트는 `bash`와 `node`를 PATH에서 찾습니다(원본의 `jq` 의존성을 `node`로 대체했음). `node`가 없으면 file_path를 읽지 못해 **검사 없이 통과**하므로(fail-open), 훅이 조용히 무력화된 상태를 정상으로 오해하지 마세요.
@@ -74,4 +76,4 @@ Claude API 연동 코드만 `api/`라는 별도 최상위 폴더에 있고(나�
 ## 저장소 구조 관련 참고사항
 
 - 이 폴더의 `.env.example` / `.gitignore`는 범용 스캐폴딩(환경변수 템플릿, 흔한 ignore 패턴)입니다 — 이 앱은 환경변수를 전혀 읽지 않고 서버 프로세스도 없습니다. 이 파일들이 있다고 해서 백엔드가 존재한다고 가정하지 마세요.
-- 이 디렉터리는 더 큰 다중 프로젝트 git 저장소 안에 있습니다(`Test-Project/`, `vibecoding/` 같은 형제 디렉터리는 같은 git 히스토리를 공유할 뿐인 무관한 별개 앱입니다). `mini-project/`는 독립적으로 취급하세요 — 여기 있는 어떤 것도 형제 디렉터리에 의존하지 않습니다.
+- 이 디렉터리는 더 큰 다중 프로젝트 git 저장소 안에 있습니다(`Test-Project/`, `vibecoding/` 같은 형제 디렉터리는 같은 git 히스토리를 공유할 뿐인 무관한 별개 앱입니다). `mini-project/`는 독립적으로 취급하세요 — 여기 있는 어떤 것도 형제 디렉터리에 의존하지 않습니다. 커밋할 때는 `git add -A`/`git commit -a`를 쓰지 말고 `git add mini-project/<파일>`처럼 경로를 명시하세요 — 저장소 루트가 상위 `Projects/`라서 미추적 형제 디렉터리가 함께 스테이징됩니다.
