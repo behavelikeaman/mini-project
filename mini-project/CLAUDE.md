@@ -19,6 +19,22 @@
 - 브라우저 전체 흐름을 검증하는 자동화된 테스트 스위트는 없습니다. 변경 사항은 브라우저에서 직접 확인하세요: 실제 카카오톡 내보내기 파일을 업로드해 파싱된 메시지 수/날짜 범위를 확인하고, 네트워크 탭/콘솔에 에러가 없는지 확인합니다.
 - **`js/parser.js` 회귀 테스트**: `node js/parser.test.js`로 실행합니다. 외부 프레임워크·의존성 없이 Node 내장 `assert/strict`만 사용하며, `js/parser.js`를 수정하지 않고 테스트 파일에서 `new Function`으로 로드합니다(같은 realm에서 평가되어야 `deepEqual` 비교가 정상 동작하므로 `vm.createContext`처럼 별도 realm을 만드는 방식은 피했습니다). 날짜/시간 파싱, 멀티라인 메시지, 오전·오후 경계값, 미디어 placeholder, 헤더 스킵, `limitMessages`/`serializeLog` 등 파서의 알려진 특이사항을 커버합니다. 파싱 정규식을 수정하면 이 테스트를 먼저 돌리고, 실제 내보내기 파일로도 재검증하세요.
 
+## 에이전트 작업 환경 (`.claude/`)
+
+`.claude/settings.json`에 **`PreToolUse[Edit|Write]` 훅**(`.claude/hooks/tdd-guard.sh`)이 걸려 있습니다. `.js` 파일을 수정하려 할 때 **같은 폴더에 `<파일명>.test.js`가 없으면 편집이 차단(deny)됩니다.**
+
+| 대상 | 판정 | 이유 |
+|---|---|---|
+| `js/parser.js` | 허용 | 짝이 되는 `js/parser.test.js`가 있음 |
+| `js/ui.js`, `js/main.js`, `js/storage.js`, `api/client.js` | **차단** | 테스트 파일 없음 |
+| `index.html`, `css/style.css`, `*.md`, `*.json` | 허용 | 훅이 검사하지 않는 확장자 |
+
+차단된 파일을 고쳐야 한다면 **테스트를 먼저 작성하세요.** 참고 패턴은 `js/parser.test.js`입니다(외부 의존성 없이 Node 내장 `assert/strict` + `new Function`으로 IIFE 로드). 훅을 우회하거나 비활성화하지 마세요 — 이 프로젝트가 TDD를 강제하려고 의도적으로 켜 둔 장치입니다.
+
+훅 스크립트는 `bash`와 `node`를 PATH에서 찾습니다(원본의 `jq` 의존성을 `node`로 대체했음). `node`가 없으면 file_path를 읽지 못해 **검사 없이 통과**하므로(fail-open), 훅이 조용히 무력화된 상태를 정상으로 오해하지 마세요.
+
+`settings.json`의 `permissions.allow`에는 chrome MCP 읽기 도구가 등록되어 있어 브라우저 확인 시 권한 프롬프트가 줄어듭니다.
+
 ## 아키텍처
 
 `index.html`에서 클래식(non-module) `<script>` 태그로 로드되는 파일 5개, **반드시 이 순서대로** — 뒤에 오는 파일이 앞에서 설정한 전역 객체에 의존합니다:
