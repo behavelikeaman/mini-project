@@ -1,0 +1,20 @@
+{
+  "name": "behavelikeaman-plugins",
+  "description": "behavelikeaman 이 직접 만든 Claude Code 플러그인 모음",
+  "owner": {
+    "name": "behavelikeaman",
+    "url": "https://github.com/behavelikeaman"
+  },
+  "plugins": [
+    {
+      "name": "my-review-plugin",
+      "source": "./Test-Project/my-review-plugin",
+      "description": "코드 리뷰 스킬 + 리뷰 전용 서브에이전트 + 커밋 전 lint/build/test 검사 훅"
+    },
+    {
+      "name": "ai-readiness-plugin",
+      "source": "./ai-readiness-plugin",
+      "description": "저장소를 AI-Ready v2 루브릭(100점 · 7개 카테고리)으로 채점하고 HTML 대시보드 + ROI 액션 리스트를 생성하는 ai-readiness-cartography-en 스킬"
+    }
+  ]
+}

@@ -1,4 +1,15 @@
 {
+  "extraKnownMarketplaces": {
+    "behavelikeaman-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "behavelikeaman/mini-project"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "ai-readiness-plugin@behavelikeaman-plugins": true
+  },
   "permissions": {
     "allow": [
       "mcp__claude-in-chrome__read_page",

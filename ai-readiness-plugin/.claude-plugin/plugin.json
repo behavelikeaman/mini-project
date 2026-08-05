@@ -1,0 +1,12 @@
+{
+  "name": "ai-readiness-plugin",
+  "displayName": "AI Readiness Cartography",
+  "version": "1.0.0",
+  "description": "저장소를 AI-Ready v2 루브릭(100점 · 7개 카테고리)으로 채점하고 단일 파일 HTML 대시보드 + ROI 순 액션 리스트를 만들어 주는 스킬 묶음.",
+  "author": {
+    "name": "behavelikeaman",
+    "url": "https://github.com/behavelikeaman"
+  },
+  "repository": "https://github.com/behavelikeaman/mini-project",
+  "keywords": ["ai-readiness", "codebase-audit", "cartography", "dashboard", "claude-code"]
+}

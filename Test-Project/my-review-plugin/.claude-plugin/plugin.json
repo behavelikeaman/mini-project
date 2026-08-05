@@ -1,0 +1,12 @@
+{
+  "name": "my-review-plugin",
+  "displayName": "My Review Plugin",
+  "version": "1.0.0",
+  "description": "코드 리뷰 스킬 + 리뷰 전용 서브에이전트 + 커밋 전 검사 훅을 한 묶음으로 제공한다.",
+  "author": {
+    "name": "behavelikeaman",
+    "url": "https://github.com/behavelikeaman"
+  },
+  "repository": "https://github.com/behavelikeaman/projects",
+  "keywords": ["code-review", "hooks", "pre-commit", "korean"]
+}
