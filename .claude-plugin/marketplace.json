@@ -14,7 +14,7 @@
     {
       "name": "ai-readiness-plugin",
       "source": "./ai-readiness-plugin",
-      "description": "저장소를 AI-Ready v2 루브릭(100점 · 7개 카테고리)으로 채점하고 HTML 대시보드 + ROI 액션 리스트를 생성하는 ai-readiness-cartography-en 스킬"
+      "description": "저장소를 AI-Ready v2 루브릭(100점 · 7개 카테고리)으로 채점하고 HTML 대시보드 + ROI 액션 리스트를 생성하는 ai-readiness-cartography-en 스킬 + 테스트 없는 구현을 차단하는 TDD 가드 훅"
     }
   ]
 }
